@@ -12,7 +12,7 @@ endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_compile_options(-fstandalone-debug) # 防止 string 在调试时显示 summary string parsing error
+#add_compile_options(-fstandalone-debug) # 防止 string 在调试时显示 summary string parsing error
 
 message(STATUS "BUILD TYPE : ${CMAKE_BUILD_TYPE}")
 
