@@ -1,7 +1,4 @@
-add_executable(
-    lab0_debug main.cpp Human.cpp Student.cpp logging.cpp
-)
-
-add_executable(
-    test_logging test_logging.cpp logging.cpp
-)
+add_subdirectory(parser)
+add_subdirectory(common)
+add_subdirectory(logging)
+add_subdirectory(cminusfc)
