@@ -133,7 +133,8 @@ statement   :   expression-stmt {$$ = node( "statement", 1, $1);}  //$1表示右
             |   return-stmt {$$ = node( "statement", 1, $1);}
             ;
 
-expression-stmt : expression SEMICOLON {$$ = node("expression-stmt", 2, $1, $2); }    //2个子节点
+expression-stmt : expression SEMICOLON {$$ = node("expression-stmt", 2, $1, $2);}  // expression-stmt 可以是 expression SEMICOLON 也可以是 SEMICOLON
+                | SEMICOLON {$$ = node("expression-stmt", 1, $1);}
                 ;
 
 selection-stmt  : IF LPARENTHESE expression RPARENTHESE statement {$$ = node("selection-stmt", 5, $1, $2, $3, $4, $5); }
