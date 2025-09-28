@@ -104,8 +104,8 @@ ASTNode *AST::transform_node_iter(syntax_tree_node *n) {
     */
     // TODO: 1.fill in the fields of ASTFunDeclaration
     // 1.1 flatten params
-    if (!_STR_EQ(n->children[0]->name, "void")) {
-      auto param_list_ptr = n->children[0];
+    if (!_STR_EQ(n->children[3]->children[0]->name, "void")) {
+      auto param_list_ptr = n->children[3]->children[0];
       std::stack<syntax_tree_node *> s;
       // 使用栈展开左递归的param-list
       while (param_list_ptr->children_num == 3) {
