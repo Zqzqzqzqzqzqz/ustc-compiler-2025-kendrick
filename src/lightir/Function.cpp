@@ -1,6 +1,10 @@
 #include "Function.hpp"
 #include "IRprinter.hpp"
 #include "Module.hpp"
+#include "Instruction.hpp"
+#include <cassert>
+#include <unordered_set>
+#include <queue>
 
 Function::Function(FunctionType *ty, const std::string &name, Module *parent)
     : Value(ty, name), parent_(parent), seq_cnt_(0) {
@@ -128,4 +132,104 @@ std::string Argument::print() {
     arg_ir += " %";
     arg_ir += this->get_name();
     return arg_ir;
+}
+
+
+void Function::check_for_block_relation_error()
+{
+    // 检查函数的基本块表是否包含所有且仅包含 get_parent 是本函数的基本块
+    std::unordered_set<BasicBlock*> bbs;
+    for (auto& bb : basic_blocks_)
+    {
+        bbs.emplace(&bb);
+    }
+    for (auto& bb : basic_blocks_)
+    {
+        assert((bb.get_parent() == this) && "函数 F 的基本块表中包含基本块 a, 但 a 的 get_parent 方法不返回 F");
+        for (auto i: bb.get_succ_basic_blocks())
+        {
+            assert((bbs.count(i)) && "函数 F 的基本块表中包含基本块 a, a 的后继块表中的某基本块 b 不在 F 的基本块表中");
+        }
+        for (auto i: bb.get_pre_basic_blocks())
+        {
+            assert((bbs.count(i)) && "函数 F 的基本块表中包含基本块 a, a 的前驱块表中的某基本块 b 不在 F 的基本块表中");
+        }
+    }
+    // 检查基本块的前驱和后继表不包含重复的基本块
+    for (auto& bb : basic_blocks_)
+    {
+        bbs.clear();
+        for(auto suc: bb.get_succ_basic_blocks()){
+            assert((!bbs.count(suc)) && "基本块的后继表中包含重复项目");
+            bbs.emplace(suc);
+        }
+        for(auto suc: bb.get_pre_basic_blocks()){
+            assert((!bbs.count(suc)) && "基本块的前驱表中包含重复项目");
+            bbs.emplace(suc);
+        }
+    }
+    // 检查基本块基本信息
+    for (auto& bb : basic_blocks_)
+    {
+        assert((!bb.get_instructions().empty()) && "发现了空基本块");
+        auto b = &bb.get_instructions().back();
+        assert((b->is_br() || b->is_ret()) && "发现了无 terminator 基本块");
+        assert((b->is_br() || bb.get_succ_basic_blocks().empty()) && "某基本块末尾是 ret 指令但是后继块表不是空的, 或者末尾是 br 但后继表为空");
+    }
+    // 检查基本块前驱后继关系是否是与 branch 指令对应
+    for (auto& bb : basic_blocks_)
+    {
+        if(!bb.get_succ_basic_blocks().empty()){
+            std::unordered_set<BasicBlock*> suc_table;
+            std::unordered_set<BasicBlock*> br_get;
+            for (auto suc : bb.get_succ_basic_blocks())
+                suc_table.emplace(suc);
+            auto& ops = bb.get_instructions().back().get_operands();
+            for (auto i : ops)
+            {
+                auto bb2 = dynamic_cast<BasicBlock*>(i);
+                if(bb2 != nullptr) br_get.emplace(bb2);
+            }
+            for(auto i : suc_table)
+                assert(br_get.count(i) && "基本块 A 的后继块有 B，但 B 并未在 A 的 br 指令中出现");
+            for(auto i : br_get)
+                assert(suc_table.count(i) && "基本块 A 的后继块没有 B，但 B 在 A 的 br 指令中出现了");
+            for(auto i : suc_table) {
+                bool ok = false;
+                for(auto j : i->get_pre_basic_blocks()) {
+                    if(j == i){
+                        ok = true;
+                        break;
+                    }
+                }
+                assert(ok && "基本块 A 的后继块表中有 B，但 B 的前驱表中没有 A");
+            }
+        }
+    }
+    // 检查基本块前驱后继关系是否是与 branch 指令对应
+    for (auto& bb : basic_blocks_)
+    {
+        for (auto pre : bb.get_pre_basic_blocks())
+        {
+            bool ok = false;
+            for (auto i : pre->get_succ_basic_blocks())
+            {
+                if (i == &bb)
+                {
+                    ok = true;
+                    break;
+                }
+            }
+            if (!ok) 
+                assert(false && "基本块 A 的后继块表中没有 B，但 B 的前驱表中有 A");
+        }
+    }
+    // 检查指令 parent 设置
+    for (auto& bb : basic_blocks_)
+    {
+        for (auto& inst : bb.get_instructions())
+        {
+            assert ((inst.get_parent() == &bb) && "基本块 A 指令表包含指令 b, 但是 b 的 get_parent 函数不返回 A");
+        }
+    }
 }

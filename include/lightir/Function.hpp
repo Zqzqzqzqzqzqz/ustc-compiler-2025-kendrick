@@ -46,6 +46,8 @@ class Function : public Value, public llvm::ilist_node<Function> {
 
     void set_instr_name();
     std::string print();
+	// 用于检查函数的基本块是否存在问题
+    void check_for_block_relation_error();
 
   private:
     llvm::ilist<BasicBlock> basic_blocks_;

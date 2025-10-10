@@ -30,6 +30,7 @@ class BasicBlock : public Value, public llvm::ilist_node<BasicBlock> {
     void add_succ_basic_block(BasicBlock *bb) { succ_bbs_.push_back(bb); }
     void remove_pre_basic_block(BasicBlock *bb) { pre_bbs_.remove(bb); }
     void remove_succ_basic_block(BasicBlock *bb) { succ_bbs_.remove(bb); }
+	BasicBlock* get_entry_block_of_same_function();
 
     // If the Block is terminated by ret/br
     bool is_terminated() const;

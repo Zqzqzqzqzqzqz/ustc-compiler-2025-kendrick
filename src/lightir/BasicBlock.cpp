@@ -69,3 +69,8 @@ std::string BasicBlock::print() {
 
     return bb_ir;
 }
+
+BasicBlock* BasicBlock::get_entry_block_of_same_function(){
+	assert((not (parent_ == nullptr)) && "bb have no parent function");
+	return parent_->get_entry_block();
+}

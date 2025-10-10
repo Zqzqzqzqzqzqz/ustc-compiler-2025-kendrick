@@ -86,6 +86,9 @@ class IRBuilder {
     AllocaInst *create_alloca(Type *ty) {
         return AllocaInst::create_alloca(ty, this->BB_);
     }
+    AllocaInst *create_alloca_begin(Type *ty) {
+        return AllocaInst::create_alloca_begin(ty, this->BB_);
+    }
     ZextInst *create_zext(Value *val, Type *ty) {
         return ZextInst::create_zext(val, ty, this->BB_);
     }

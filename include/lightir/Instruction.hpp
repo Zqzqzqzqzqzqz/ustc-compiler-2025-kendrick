@@ -289,7 +289,8 @@ class AllocaInst : public BaseInst<AllocaInst> {
 
   public:
     static AllocaInst *create_alloca(Type *ty, BasicBlock *bb);
-
+    static AllocaInst *create_alloca_begin(Type *ty, BasicBlock *bb);
+	
     Type *get_alloca_type() const {
         return get_type()->get_pointer_element_type();
     };

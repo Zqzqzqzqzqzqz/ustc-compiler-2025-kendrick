@@ -298,6 +298,16 @@ AllocaInst *AllocaInst::create_alloca(Type *ty, BasicBlock *bb) {
     return create(ty, bb);
 }
 
+AllocaInst *AllocaInst::create_alloca_begin(Type *ty, BasicBlock *bb) {
+    auto ret = create(ty, nullptr);
+	if(bb != nullptr)
+	{
+		ret->set_parent(bb);
+		bb->add_instr_begin(ret);
+	}
+	return ret;
+}
+
 ZextInst::ZextInst(Value *val, Type *ty, BasicBlock *bb)
     : BaseInst<ZextInst>(ty, zext, bb) {
     assert(val->get_type()->is_integer_type() &&
