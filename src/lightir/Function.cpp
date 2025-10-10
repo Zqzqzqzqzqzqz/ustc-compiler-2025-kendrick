@@ -156,7 +156,8 @@ void Function::check_for_block_relation_error()
         }
     }
     // 检查基本块的前驱和后继表不包含重复的基本块
-    for (auto& bb : basic_blocks_)
+    /*
+	for (auto& bb : basic_blocks_)
     {
         bbs.clear();
         for(auto suc: bb.get_succ_basic_blocks()){
@@ -168,6 +169,7 @@ void Function::check_for_block_relation_error()
             bbs.emplace(suc);
         }
     }
+	*/
     // 检查基本块基本信息
     for (auto& bb : basic_blocks_)
     {
@@ -197,7 +199,7 @@ void Function::check_for_block_relation_error()
             for(auto i : suc_table) {
                 bool ok = false;
                 for(auto j : i->get_pre_basic_blocks()) {
-                    if(j == i){
+                    if(j == &bb){
                         ok = true;
                         break;
                     }

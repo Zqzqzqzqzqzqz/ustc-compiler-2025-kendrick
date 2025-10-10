@@ -76,7 +76,7 @@ lv1 = {
     "transfer_int_to_float": (1, False),
 }
 
-# 23
+# 24
 lv2 = {
     "funcall_chain": (2, False),
     "assign_chain": (2, False),
@@ -86,16 +86,17 @@ lv2 = {
     "funcall_array_array": (2, False),
     "return_in_middle1": (2, False),
     "return_in_middle2": (2, False),
-    "funcall_type_mismatch1": (2, False),
-    "funcall_type_mismatch2": (2, False),
+    "funcall_type_mismatch1": (1.5, False),
+    "funcall_type_mismatch2": (1.5, False),
     "return_type_mismatch1": (1.5, False),
     "return_type_mismatch2": (1.5, False),
+    "alloca_in_loop": (2, False)
 }
 
-# 11
+# 10
 lv3 = {
-    "complex1": (3, False),
-    "complex2": (3, True),
+    "complex1": (2.5, False),
+    "complex2": (2.5, True),
     "complex3": (2, True),
     "complex4": (3, False),
 }
