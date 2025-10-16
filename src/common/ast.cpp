@@ -33,21 +33,26 @@ ASTNode *AST::transform_node_iter(syntax_tree_node *n) {
   将其转化成AST中ASTProgram的结构
   */
   if (_STR_EQ(n->name, "program")) {
-    auto node = new ASTProgram();
+    auto node = new ASTProgram(); // 创建一个ASTProgram节点，作为AST的根
     // flatten declaration list
     std::stack<syntax_tree_node *>
         s; // 为什么这里要用stack呢？如果用其他数据结构应该如何实现
-    auto list_ptr = n->children[0];
-    while (list_ptr->children_num == 2) {
+           // C-minus的文法中，declaration-list是左递归的，这导致解析后形成的CST是反向的。
+    // 例如 `int a; int b;` 会解析成 (declaration-list (declaration-list 'a')
+    // 'b') 为了恢复原始顺序，我们使用栈(LIFO)来反转这个列表。
+    auto list_ptr = n->children[0]; // declaration-list
+    while (list_ptr->children_num ==
+           2) { // 遍历CST中嵌套的 declaration-list，将每个 declaration 压入栈中
       s.push(list_ptr->children[1]);
       list_ptr = list_ptr->children[0];
     }
-    s.push(list_ptr->children[0]);
+    s.push(list_ptr->children[0]); // 压入最后一个 declaration
 
-    while (!s.empty()) {
+    while (!s.empty()) { // 从栈中弹出每个 declaration，转换为 ASTDeclaration
+                         // 节点，并添加到 ASTProgram 的 declarations 列表中
       auto child_node =
           static_cast<ASTDeclaration *>(transform_node_iter(s.top()));
-
+      // 转换为共享指针，添加到 declarations 列表中
       auto child_node_shared = std::shared_ptr<ASTDeclaration>(child_node);
       node->declarations.push_back(child_node_shared);
       s.pop();
@@ -55,6 +60,8 @@ ASTNode *AST::transform_node_iter(syntax_tree_node *n) {
     return node;
   } else if (_STR_EQ(n->name, "declaration")) {
     return transform_node_iter(n->children[0]);
+    // declaration节点只是一个中间节点，实际的声明是其子节点（var-declaration或fun-declaration）
+    // 因此直接递归转换其子节点
   } else if (_STR_EQ(n->name, "var-declaration")) {
     auto node = new ASTVarDeclaration();
     // NOTE: 思考 ASTVarDeclaration的结构，需要填充的字段有哪些
@@ -104,20 +111,46 @@ ASTNode *AST::transform_node_iter(syntax_tree_node *n) {
     */
     // TODO: 1.fill in the fields of ASTFunDeclaration
     // 1.1 flatten params
+    if (!_STR_EQ(n->children[3]->children[0]->name, "void")) {
+      auto param_list_ptr = n->children[3]->children[0];
+      std::stack<syntax_tree_node *> s;
+
+      // 使用栈展开左递归的param-list
+      while (param_list_ptr->children_num == 3) {
+        s.push(param_list_ptr->children[2]);          // 压入 param
+        param_list_ptr = param_list_ptr->children[0]; // 移动到下一个 param-list
+      }
+      s.push(param_list_ptr->children[0]); // 压入最后一个 param
+
+      // 从栈中弹出每个param，转换为ASTParam节点
+      while (!s.empty()) {
+        auto param_node = static_cast<ASTParam *>(transform_node_iter(s.top()));
+        node->params.push_back(std::shared_ptr<ASTParam>(param_node));
+        s.pop();
+      }
+    }
 
     // 1.2 compound_stmt 字段填充
+    auto stmt_node =
+        static_cast<ASTCompoundStmt *>(transform_node_iter(n->children[5]));
+    node->compound_stmt = std::shared_ptr<ASTCompoundStmt>(stmt_node);
 
     return node;
   } else if (_STR_EQ(n->name, "param")) {
     // param -> type-specifier ID | type-specifier ID [ ]
     // ASTParam的结构 主要需要填充的属性有 type, id, isarray
     auto node = new ASTParam();
-    // type, id, isarray
+
+    // 填充参数类型
     if (_STR_EQ(n->children[0]->children[0]->name, "int"))
       node->type = TYPE_INT;
     else
       node->type = TYPE_FLOAT;
+
+    // 填充参数名
     node->id = n->children[1]->name;
+
+    // 检查是否为数组参数
     if (n->children_num > 2)
       node->isarray = true;
     return node;
@@ -132,10 +165,49 @@ ASTNode *AST::transform_node_iter(syntax_tree_node *n) {
     */
     // local declarations
     // 2.1 flatten local declarations
+    auto local_decl_ptr = n->children[1];
+    if (local_decl_ptr->children_num > 0) {
+      std::stack<syntax_tree_node *> s;
+      while (local_decl_ptr->children_num == 2) {
+        s.push(local_decl_ptr->children[1]);          // var-declaration
+        local_decl_ptr = local_decl_ptr->children[0]; // local-declarations
+      }
+      // 如果只有一个var-declaration，上面的while不会执行
+      // 但local_decl_ptr会是那个唯一的var-declaration的父节点
+      // 这里需要检查，但根据文法，空的情况children_num=0,
+      // 单个的情况children_num=1, 多个是2。
+      // 修正：文法 local-declarations -> local-declarations var-declaration |
+      // empty 所以栈展开逻辑是正确的
+
+      while (!s.empty()) {
+        auto var_decl_node =
+            static_cast<ASTVarDeclaration *>(transform_node_iter(s.top()));
+        node->local_declarations.push_back(
+            std::shared_ptr<ASTVarDeclaration>(var_decl_node));
+        s.pop();
+      }
+    }
 
     // statement list
     // 2.2 flatten statement-list
+    auto stmt_list_ptr = n->children[2];
+    if (stmt_list_ptr->children_num > 0) {
+      std::stack<syntax_tree_node *> s;
+      while (stmt_list_ptr->children_num == 2) {
+        s.push(stmt_list_ptr->children[1]); //   children[1] 是 statement 节点
+        stmt_list_ptr =
+            stmt_list_ptr
+                ->children[0]; //  children[0] 是xiayiceng statement-list 节点
+      }
 
+      while (!s.empty()) {
+        auto stmt_node =
+            static_cast<ASTStatement *>(transform_node_iter(s.top()));
+        node->statement_list.push_back(
+            std::shared_ptr<ASTStatement>(stmt_node));
+        s.pop();
+      }
+    }
     return node;
   } else if (_STR_EQ(n->name, "statement")) {
     return transform_node_iter(n->children[0]);
@@ -158,11 +230,24 @@ ASTNode *AST::transform_node_iter(syntax_tree_node *n) {
       expression, if_statement, else_statement
     */
     // 5.1 expresstion
-
+    auto expr_node = static_cast<ASTExpression *>(
+        transform_node_iter(n->children[2])); // 递归转换 'if' 条件表达式
+                                              // (CST中的第3个孩子, 索引为2)
+    node->expression = std::shared_ptr<ASTExpression>(expr_node);
     // 5.2 if statement
+
+    auto if_stmt_node =
+        static_cast<ASTStatement *>(transform_node_iter(n->children[4]));
+    node->if_statement = std::shared_ptr<ASTStatement>(if_stmt_node);
 
     // check whether this selection statement contains
     // 5.3 else structure
+    if (n->children_num == 7) // 如果CST的子节点数量为7，说明存在 'else' 分支
+    {
+      auto else_stmt_node =
+          static_cast<ASTStatement *>(transform_node_iter(n->children[6]));
+      node->else_statement = std::shared_ptr<ASTStatement>(else_stmt_node);
+    }
 
     return node;
   } else if (_STR_EQ(n->name, "iteration-stmt")) {
@@ -245,11 +330,27 @@ ASTNode *AST::transform_node_iter(syntax_tree_node *n) {
       // TODO: 4.fill in the fields of ASTAdditiveExpression
       /*
         文法表达式如下
-        additive-expression -> additive-expression addop term | term 
+        additive-expression -> additive-expression addop term | term
       */
       // additive_expression, term, op
+      // 递归转换左侧的 additive-expression
+      auto add_expr_node = static_cast<ASTAdditiveExpression *>(
+          transform_node_iter(n->children[0]));
+      node->additive_expression =
+          std::shared_ptr<ASTAdditiveExpression>(add_expr_node);
+      // 递归转换右侧的 term
+      auto term_node =
+          static_cast<ASTTerm *>(transform_node_iter(n->children[2]));
+      node->term = std::shared_ptr<ASTTerm>(term_node);
 
-    } else {
+      auto op_name = n->children[1]->children[0]->name;
+      if (_STR_EQ(op_name, "+"))
+        node->op = OP_PLUS;
+      else
+        node->op = OP_MINUS;
+    } else // 对应 `term` 规则 (递归的基准情况) 当前节点只包含一个
+           // term，递归转换它
+    {
       auto term_node =
           static_cast<ASTTerm *>(transform_node_iter(n->children[0]));
       node->term = std::shared_ptr<ASTTerm>(term_node);
@@ -294,12 +395,22 @@ ASTNode *AST::transform_node_iter(syntax_tree_node *n) {
         float -> FLOATPOINT
         integer -> INTEGER
       */
-      if (_STR_EQ(name, "integer")) {
+      if (_STR_EQ(name, "integer")) //  检查当前正在处理的 CST
+                                    //  子节点(n->children[i])的产生式名称(name)
+      {
         // 3.1
-
+        num_node->type = TYPE_INT;
+        num_node->i_val = std::stoi(n->children[i]->children[0]->name);
+        // 根据文法 integer -> INTEGER，从 CST 的孙子节点(INTEGER token)中
+        // 获取整数的字符串值，并使用 std::stoi 转换为 int 类型。
+        // CST 结构: factor -> integer -> INTEGER
       } else if (_STR_EQ(name, "float")) {
         // 3.2
-
+        // 根据文法 float -> FLOATPOINT，从 CST 的孙子节点(FLOATPOINT token)中
+        // 获取浮点数的字符串值，并使用 std::stof 转换为 float 类型。
+        // CST 结构: factor -> float -> FLOATPOINT
+        num_node->type = TYPE_FLOAT;
+        num_node->f_val = std::stof(n->children[i]->children[0]->name);
       } else {
         _AST_NODE_ERROR_
       }

@@ -10,7 +10,8 @@
 using std::string;
 using std::operator""s;
 
-struct Config {
+struct Config
+{
     string exe_name; // compiler exe name
     std::filesystem::path input_file;
     std::filesystem::path output_file;
