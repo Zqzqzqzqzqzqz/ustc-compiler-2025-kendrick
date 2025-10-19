@@ -1,121 +1,65 @@
 #ifndef LOGGING_HPP
 #define LOGGING_HPP
 
-<<<<<<< HEAD
 #include <cstdlib>
 #include <iostream>
 #include <sstream>
 
 enum LogLevel { DEBUG = 0, INFO, WARNING, ERROR };
 struct LocationInfo {
-    LocationInfo(std::string file, int line, const char *func)
-        : file_(file), line_(line), func_(func) {}
-=======
-#include <iostream>
-#include <sstream>
-#include <cstdlib>
+  LocationInfo(std::string file, int line, const char *func)
+      : file_(file), line_(line), func_(func) {}
+  ~LocationInfo() = default;
 
-enum LogLevel
-{
-    DEBUG = 0,
-    INFO,
-    WARNING,
-    ERROR
-};
-struct LocationInfo
-{
-    LocationInfo(std::string file, int line, const char *func) : file_(file), line_(line), func_(func) {}
->>>>>>> lab1
-    ~LocationInfo() = default;
-
-    std::string file_;
-    int line_;
-    const char *func_;
+  std::string file_;
+  int line_;
+  const char *func_;
 };
 class LogStream;
 class LogWriter;
 
-<<<<<<< HEAD
 class LogWriter {
-  public:
-    LogWriter(LocationInfo location, LogLevel loglevel)
-        : location_(location), log_level_(loglevel) {
-        char *logv = std::getenv("LOGV");
-        if (logv) {
-            std::string string_logv = logv;
-            env_log_level = std::stoi(logv);
-        } else {
-=======
-class LogWriter
-{
 public:
-    LogWriter(LocationInfo location, LogLevel loglevel)
-        : location_(location), log_level_(loglevel)
-    {
-        char *logv = std::getenv("LOGV");
-        if (logv)
-        {
-            std::string string_logv = logv;
-            env_log_level = std::stoi(logv);
-        }
-        else
-        {
->>>>>>> lab1
-            env_log_level = 4;
-        }
-    };
+  LogWriter(LocationInfo location, LogLevel loglevel)
+      : location_(location), log_level_(loglevel) {
+    char *logv = std::getenv("LOGV");
+    if (logv) {
+      std::string string_logv = logv;
+      env_log_level = std::stoi(logv);
+    } else {
+      env_log_level = 4;
+    }
+  };
 
-    void operator<(const LogStream &stream);
+  void operator<(const LogStream &stream);
 
-<<<<<<< HEAD
-  private:
-=======
 private:
->>>>>>> lab1
-    void output_log(const std::ostringstream &g);
-    LocationInfo location_;
-    LogLevel log_level_;
-    int env_log_level;
+  void output_log(const std::ostringstream &g);
+  LocationInfo location_;
+  LogLevel log_level_;
+  int env_log_level;
 };
 
-<<<<<<< HEAD
 class LogStream {
-  public:
-    template <typename T> LogStream &operator<<(const T &val) noexcept {
-=======
-class LogStream
-{
 public:
-    template <typename T>
-    LogStream &operator<<(const T &val) noexcept
-    {
->>>>>>> lab1
-        sstream_ << val;
-        return *this;
-    }
+  template <typename T> LogStream &operator<<(const T &val) noexcept {
+    sstream_ << val;
+    return *this;
+  }
 
-    friend class LogWriter;
+  friend class LogWriter;
 
-<<<<<<< HEAD
-  private:
-=======
 private:
->>>>>>> lab1
-    std::stringstream sstream_{};
+  std::stringstream sstream_{};
 };
 
 std::string level2string(LogLevel level);
 std::string get_short_name(const char *file_path);
 
 #define __FILESHORTNAME__ get_short_name(__FILE__)
-<<<<<<< HEAD
 #define LOG_IF(level)                                                          \
-    LogWriter(LocationInfo(__FILESHORTNAME__, __LINE__, __FUNCTION__),         \
-              level) < LogStream()
-=======
-#define LOG_IF(level) \
-    LogWriter(LocationInfo(__FILESHORTNAME__, __LINE__, __FUNCTION__), level) < LogStream()
->>>>>>> lab1
+  LogWriter(LocationInfo(__FILESHORTNAME__, __LINE__, __FUNCTION__), level) <  \
+      LogStream()
 #define LOG(level) LOG_##level
 #define LOG_DEBUG LOG_IF(DEBUG)
 #define LOG_INFO LOG_IF(INFO)
