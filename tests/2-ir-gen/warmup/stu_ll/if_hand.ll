@@ -1,14 +1,21 @@
-define i32 @main() {
-entry:
-%a = alloca float
-store float 5.555000e+00, float* %a
-%a_val = load float, float* %a
-%cmp = fcmp ugt float %a_val, 1.000000e+00
-br i1 %cmp, label %if_true, label %if_false
+define dso_local i32 @main() #0 {
+  %1 = alloca i32, align 4
+  %2 = alloca float, align 4
+  store i32 0, ptr %1, align 4
+  store float 0x40163851E0000000, ptr %2, align 4
+  %3 = load float, ptr %2, align 4
+  %4 = fcmp ogt float %3, 1.000000e+00
+  br i1 %4, label %5, label %6
 
-if_true:
-ret i32 233
+5:                                                ; preds = %0
+  store i32 233, ptr %1, align 4
+  br label %7
 
-if_false:
-ret i32 0
+6:                                                ; preds = %0
+  store i32 0, ptr %1, align 4
+  br label %7
+
+7:                                                ; preds = %6, %5
+  %8 = load i32, ptr %1, align 4
+  ret i32 %8
 }
